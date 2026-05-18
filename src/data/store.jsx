@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import {
   studios as seedStudios,
   coaches as seedCoaches,
@@ -9,6 +9,7 @@ import { effectiveCoachId, defaultStatus } from './helpers.js'
 
 const StoreContext = createContext(null)
 const LS_KEY = 'sm_data_v2'
+const API = '/api/state'
 
 function initialData() {
   return {
@@ -19,15 +20,20 @@ function initialData() {
   }
 }
 
-function load() {
+function isValid(d) {
+  return d && d.studios && d.coaches && d.rates && d.sessions
+}
+
+// Carga rápida desde localStorage (caché) para render instantáneo.
+function loadLocal() {
   try {
     const raw = localStorage.getItem(LS_KEY)
     if (raw) {
       const d = JSON.parse(raw)
-      if (d && d.studios && d.coaches && d.rates && d.sessions) return d
+      if (isValid(d)) return d
     }
   } catch {
-    // localStorage corrupto o no disponible — caemos al seed.
+    // localStorage corrupto o no disponible
   }
   return initialData()
 }
@@ -37,15 +43,64 @@ function uid(prefix) {
 }
 
 export function StoreProvider({ children }) {
-  const [data, setData] = useState(load)
+  const [data, setData] = useState(loadLocal)
   const [editing, setEditing] = useState(null) // null | 'new' | sessionObject
+  const [sync, setSync] = useState('syncing') // 'syncing' | 'online' | 'offline'
 
+  const dataRef = useRef(data)
+  dataRef.current = data
+  const readyRef = useRef(false) // true cuando ya reconciliamos con el servidor
+  const timerRef = useRef(null)
+
+  // Carga inicial: traer el estado de la nube y reconciliar.
+  useEffect(() => {
+    let cancelled = false
+    fetch(API)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error('http'))))
+      .then((server) => {
+        if (cancelled) return
+        if (isValid(server)) {
+          setData(server)
+        } else {
+          // El servidor está vacío: lo sembramos con lo que tenemos.
+          fetch(API, {
+            method: 'PUT',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(dataRef.current),
+          }).catch(() => {})
+        }
+        readyRef.current = true
+        setSync('online')
+      })
+      .catch(() => {
+        if (cancelled) return
+        readyRef.current = true
+        setSync('offline')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // Guardado: localStorage siempre; nube con debounce.
   useEffect(() => {
     try {
       localStorage.setItem(LS_KEY, JSON.stringify(data))
     } catch {
-      // ignore: prototipo, sin persistencia garantizada
+      // ignore
     }
+    if (!readyRef.current) return
+    clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => {
+      setSync('syncing')
+      fetch(API, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(dataRef.current),
+      })
+        .then((r) => setSync(r.ok ? 'online' : 'offline'))
+        .catch(() => setSync('offline'))
+    }, 700)
   }, [data])
 
   // --- lookups ---
@@ -141,11 +196,12 @@ export function StoreProvider({ children }) {
   }
 
   // --- editor de clase ---
-  const openEditor = (target) => setEditing(target) // 'new' o sesión
+  const openEditor = (target) => setEditing(target)
   const closeEditor = () => setEditing(null)
 
   const value = {
     ...data,
+    sync,
     studioById,
     coachById,
     rateFor,

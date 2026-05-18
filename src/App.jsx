@@ -44,8 +44,14 @@ function Icon({ id, active }) {
   )
 }
 
+const SYNC_LABEL = {
+  syncing: 'Sincronizando…',
+  online: 'Guardado en la nube',
+  offline: 'Sin conexión — guardado local',
+}
+
 function Settings({ onClose }) {
-  const { resetDemo } = useStore()
+  const { resetDemo, sync } = useStore()
   const [confirm, setConfirm] = useState(false)
   return (
     <div className="animate-fade fixed inset-0 z-30 flex items-end justify-center bg-fg/40" onClick={onClose}>
@@ -59,9 +65,17 @@ function Settings({ onClose }) {
             Cerrar
           </button>
         </div>
+        <div className="mb-3 flex items-center gap-2 rounded-lg border border-line bg-bg px-3 py-2.5">
+          <span
+            className={`h-2 w-2 rounded-full ${sync === 'online' ? 'bg-fg' : sync === 'offline' ? 'border border-fg' : 'bg-muted'}`}
+          />
+          <span className="font-mono text-[11px] uppercase tracking-wide text-fg">
+            {SYNC_LABEL[sync]}
+          </span>
+        </div>
         <p className="font-mono text-[11px] leading-relaxed text-muted">
-          Prototipo de Studio Manager. Los datos (clases, equipo, tarifas) se guardan solo en este
-          dispositivo, en el navegador. No hay cuenta ni sincronización todavía.
+          Prototipo de Studio Manager. Los datos (clases, equipo, tarifas) se guardan en la nube y se
+          sincronizan entre dispositivos. Todavía no hay cuenta ni contraseña.
         </p>
         <button
           onClick={() => {
