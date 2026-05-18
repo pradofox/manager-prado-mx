@@ -45,6 +45,7 @@ function uid(prefix) {
 export function StoreProvider({ children }) {
   const [data, setData] = useState(loadLocal)
   const [editing, setEditing] = useState(null) // null | 'new' | sessionObject
+  const [subPicking, setSubPicking] = useState(null) // sesión a sustituir | null
   const [sync, setSync] = useState('syncing') // 'syncing' | 'online' | 'offline'
 
   const dataRef = useRef(data)
@@ -199,6 +200,10 @@ export function StoreProvider({ children }) {
   const openEditor = (target) => setEditing(target)
   const closeEditor = () => setEditing(null)
 
+  // --- selector de sustitución ---
+  const openSubPicker = (session) => setSubPicking(session)
+  const closeSubPicker = () => setSubPicking(null)
+
   const value = {
     ...data,
     sync,
@@ -220,6 +225,9 @@ export function StoreProvider({ children }) {
     editing,
     openEditor,
     closeEditor,
+    subPicking,
+    openSubPicker,
+    closeSubPicker,
   }
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
 }

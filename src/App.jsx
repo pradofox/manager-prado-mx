@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { parseDate, todayStr } from './data/helpers.js'
 import { useStore } from './data/store.jsx'
 import ClassForm from './components/ClassForm.jsx'
+import SubstitutePicker from './components/SubstitutePicker.jsx'
 import Horarios from './pages/Horarios.jsx'
 import Pagos from './pages/Pagos.jsx'
 import Sustituciones from './pages/Sustituciones.jsx'
@@ -54,9 +55,9 @@ function Settings({ onClose }) {
   const { resetDemo, sync } = useStore()
   const [confirm, setConfirm] = useState(false)
   return (
-    <div className="animate-fade fixed inset-0 z-30 flex items-end justify-center bg-fg/40" onClick={onClose}>
+    <div className="animate-fade absolute inset-0 z-30 flex items-end justify-center bg-fg/40" onClick={onClose}>
       <div
-        className="animate-sheet mx-auto w-full max-w-md rounded-t-2xl border-t border-line bg-card p-4 pb-8"
+        className="animate-sheet w-full max-w-md rounded-t-2xl border-t border-line bg-card p-4 pb-8"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">
@@ -93,7 +94,7 @@ function Settings({ onClose }) {
           {confirm ? 'Confirmar — esto borra tus cambios' : 'Reiniciar datos de demo'}
         </button>
         <div className="mt-3 text-center font-mono text-[10px] uppercase tracking-widest text-muted">
-          Studio Manager · PRADO · v0.2
+          Studio Manager · PRADO · v0.3
         </div>
       </div>
     </div>
@@ -107,74 +108,81 @@ export default function App() {
   const Active = TABS.find((t) => t.id === tab).Page
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-bg">
-      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-bg/95 px-4 py-3 backdrop-blur">
-        <div>
-          <div className="text-[15px] font-bold leading-none">Studio Manager</div>
-          <div className="mt-1 font-mono text-[10px] uppercase tracking-widest text-muted">PRADO · Hugo Prado</div>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="text-right">
-            <div className="font-mono text-[10px] uppercase text-muted">Hoy</div>
-            <div className="font-mono text-[13px] font-bold">{parseDate(todayStr()).full}</div>
+    <div className="flex min-h-dvh flex-col items-center justify-center bg-[#E4E4E4] md:py-6">
+      <div className="relative flex h-dvh w-full max-w-md flex-col overflow-hidden bg-bg md:h-[min(880px,calc(100dvh_-_3rem))] md:rounded-[2rem] md:border md:border-line md:shadow-[0_28px_70px_-24px_rgba(0,0,0,0.4)]">
+        <header className="flex items-center justify-between border-b border-line bg-bg px-4 py-3">
+          <div>
+            <div className="text-[15px] font-bold leading-none">Studio Manager</div>
+            <div className="mt-1 font-mono text-[10px] uppercase tracking-widest text-muted">
+              PRADO · Hugo Prado
+            </div>
           </div>
-          <button
-            onClick={() => setSettings(true)}
-            aria-label="Ajustes"
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-line"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16">
-              <circle cx="8" cy="8" r="2.4" fill="none" stroke="#000" strokeWidth="1.4" />
-              <path
-                d="M8 1.3v2M8 12.7v2M1.3 8h2M12.7 8h2M3.3 3.3l1.4 1.4M11.3 11.3l1.4 1.4M12.7 3.3l-1.4 1.4M4.7 11.3l-1.4 1.4"
-                fill="none"
-                stroke="#000"
-                strokeWidth="1.4"
-                strokeLinecap="round"
-              />
-            </svg>
-          </button>
-        </div>
-      </header>
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <div className="font-mono text-[10px] uppercase text-muted">Hoy</div>
+              <div className="font-mono text-[13px] font-bold">{parseDate(todayStr()).full}</div>
+            </div>
+            <button
+              onClick={() => setSettings(true)}
+              aria-label="Ajustes"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-line"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16">
+                <circle cx="8" cy="8" r="2.4" fill="none" stroke="#000" strokeWidth="1.4" />
+                <path
+                  d="M8 1.3v2M8 12.7v2M1.3 8h2M12.7 8h2M3.3 3.3l1.4 1.4M11.3 11.3l1.4 1.4M12.7 3.3l-1.4 1.4M4.7 11.3l-1.4 1.4"
+                  fill="none"
+                  stroke="#000"
+                  strokeWidth="1.4"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
+          </div>
+        </header>
 
-      <main className="flex-1 px-4 pb-28 pt-3">
-        <Active />
-      </main>
+        <main className="flex-1 overflow-y-auto px-4 pb-24 pt-3">
+          <Active />
+        </main>
 
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md">
         <button
           onClick={() => openEditor('new')}
           aria-label="Nueva clase"
-          className="pointer-events-auto absolute bottom-20 right-4 flex h-14 w-14 items-center justify-center rounded-full bg-fg text-card shadow-lg active:scale-95"
+          className="absolute bottom-[5.5rem] right-4 z-10 flex h-14 w-14 items-center justify-center rounded-full bg-fg text-card shadow-lg active:scale-95"
         >
           <svg width="22" height="22" viewBox="0 0 22 22">
             <path d="M11 4v14M4 11h14" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
           </svg>
         </button>
+
+        <nav className="flex justify-around border-t border-line bg-card pb-[env(safe-area-inset-bottom)]">
+          {TABS.map((t) => {
+            const active = t.id === tab
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className="flex flex-1 flex-col items-center gap-1 py-2.5"
+              >
+                <Icon id={t.id} active={active} />
+                <span
+                  className={`font-mono text-[10px] uppercase tracking-wide ${active ? 'font-bold text-fg' : 'text-muted'}`}
+                >
+                  {t.label}
+                </span>
+              </button>
+            )
+          })}
+        </nav>
+
+        {editing && <ClassForm />}
+        {settings && <Settings onClose={() => setSettings(false)} />}
+        <SubstitutePicker />
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-10 mx-auto flex max-w-md justify-around border-t border-line bg-card pb-[env(safe-area-inset-bottom)]">
-        {TABS.map((t) => {
-          const active = t.id === tab
-          return (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className="flex flex-1 flex-col items-center gap-1 py-2.5"
-            >
-              <Icon id={t.id} active={active} />
-              <span
-                className={`font-mono text-[10px] uppercase tracking-wide ${active ? 'font-bold text-fg' : 'text-muted'}`}
-              >
-                {t.label}
-              </span>
-            </button>
-          )
-        })}
-      </nav>
-
-      {editing && <ClassForm />}
-      {settings && <Settings onClose={() => setSettings(false)} />}
+      <div className="mt-3 hidden font-mono text-[10px] uppercase tracking-widest text-muted md:block">
+        Studio Manager · PRADO · Prototipo
+      </div>
     </div>
   )
 }

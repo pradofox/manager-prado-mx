@@ -87,11 +87,11 @@ export default function ClassForm() {
 
   return (
     <div
-      className="animate-fade fixed inset-0 z-30 flex items-end justify-center bg-fg/40"
+      className="animate-fade absolute inset-0 z-30 flex items-end justify-center bg-fg/40"
       onClick={store.closeEditor}
     >
       <div
-        className="animate-sheet mx-auto max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-2xl border-t border-line bg-card p-4 pb-8"
+        className="animate-sheet max-h-[92%] w-full max-w-md overflow-y-auto rounded-t-2xl border-t border-line bg-card p-4 pb-8"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">
