@@ -45,17 +45,19 @@ function Icon({ id, active }) {
   )
 }
 
-function GearIcon() {
+function SettingsIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16">
-      <circle cx="8" cy="8" r="2.4" fill="none" stroke="#000" strokeWidth="1.4" />
       <path
-        d="M8 1.3v2M8 12.7v2M1.3 8h2M12.7 8h2M3.3 3.3l1.4 1.4M11.3 11.3l1.4 1.4M12.7 3.3l-1.4 1.4M4.7 11.3l-1.4 1.4"
+        d="M2 4.5h12M2 8h12M2 11.5h12"
         fill="none"
         stroke="#000"
         strokeWidth="1.4"
         strokeLinecap="round"
       />
+      <circle cx="6" cy="4.5" r="2" fill="#fff" stroke="#000" strokeWidth="1.4" />
+      <circle cx="10.5" cy="8" r="2" fill="#fff" stroke="#000" strokeWidth="1.4" />
+      <circle cx="5" cy="11.5" r="2" fill="#fff" stroke="#000" strokeWidth="1.4" />
     </svg>
   )
 }
@@ -172,7 +174,7 @@ export default function App() {
             aria-label="Ajustes"
             className="flex h-9 w-9 items-center justify-center rounded-full border border-line"
           >
-            <GearIcon />
+            <SettingsIcon />
           </button>
         </div>
       </aside>
@@ -197,7 +199,7 @@ export default function App() {
               aria-label="Ajustes"
               className="flex h-9 w-9 items-center justify-center rounded-full border border-line"
             >
-              <GearIcon />
+              <SettingsIcon />
             </button>
           </div>
         </header>
