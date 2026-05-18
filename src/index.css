@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #F0F0F0;
+  --color-fg: #000000;
+  --color-muted: #888888;
+  --color-line: #D6D6D6;
+  --color-card: #FFFFFF;
+  --font-sans: "Geist", system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-weight: 400;
+}
+
+input, select, button {
+  font-family: inherit;
+}

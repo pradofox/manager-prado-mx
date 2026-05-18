@@ -1,0 +1,11 @@
+name = "prado-studio-manager"
+compatibility_date = "2026-04-01"
+account_id = "79b48e78b9db791957b966c527f8039a"
+
+[assets]
+directory = "./dist"
+not_found_handling = "single-page-application"
+
+[[routes]]
+pattern = "manager.prado-mx.com"
+custom_domain = true
