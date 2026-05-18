@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { parseDate } from './data/helpers.js'
 import { TODAY } from './data/seed.js'
+import { useStore } from './data/store.jsx'
+import ClassForm from './components/ClassForm.jsx'
 import Horarios from './pages/Horarios.jsx'
 import Pagos from './pages/Pagos.jsx'
 import Sustituciones from './pages/Sustituciones.jsx'
@@ -45,6 +47,7 @@ function Icon({ id, active }) {
 
 export default function App() {
   const [tab, setTab] = useState('horarios')
+  const { editing, openEditor } = useStore()
   const Active = TABS.find((t) => t.id === tab).Page
 
   return (
@@ -63,6 +66,18 @@ export default function App() {
       <main className="flex-1 px-4 pb-28 pt-3">
         <Active />
       </main>
+
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md">
+        <button
+          onClick={() => openEditor('new')}
+          aria-label="Nueva clase"
+          className="pointer-events-auto absolute bottom-20 right-4 flex h-14 w-14 items-center justify-center rounded-full bg-fg text-card shadow-lg active:scale-95"
+        >
+          <svg width="22" height="22" viewBox="0 0 22 22">
+            <path d="M11 4v14M4 11h14" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </button>
+      </div>
 
       <nav className="fixed inset-x-0 bottom-0 z-10 mx-auto flex max-w-md justify-around border-t border-line bg-card pb-[env(safe-area-inset-bottom)]">
         {TABS.map((t) => {
@@ -83,6 +98,8 @@ export default function App() {
           )
         })}
       </nav>
+
+      {editing && <ClassForm />}
     </div>
   )
 }

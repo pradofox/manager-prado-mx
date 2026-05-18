@@ -1,12 +1,8 @@
-import { studios, coaches, CLASS_TYPES, rateFor, TODAY } from './seed.js'
-
-export { rateFor }
+import { CLASS_TYPES, TODAY } from './seed.js'
 
 const DOW = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 const MONTH = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
 
-export const studioById = (id) => studios.find((s) => s.id === id)
-export const coachById = (id) => coaches.find((c) => c.id === id)
 export const classLabel = (t) => CLASS_TYPES[t] || t
 
 export function fmtMoney(n) {
@@ -28,14 +24,13 @@ export function effectiveCoachId(session) {
   return session.substitutedBy || session.coachId
 }
 
-// Pago de una sesión: tarifa del coach que efectivamente la dio.
-export function sessionPay(session) {
-  const coachId = effectiveCoachId(session)
-  return rateFor(coachId, session.studioId, session.classType)
-}
-
 export function isToday(dateStr) {
   return dateStr === TODAY
+}
+
+// Estado por defecto de una clase según su fecha.
+export function defaultStatus(dateStr) {
+  return dateStr < TODAY ? 'completed' : 'scheduled'
 }
 
 // Quincena que contiene a TODAY: [16, fin de mes] o [1, 15].

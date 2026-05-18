@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useStore } from '../data/store.jsx'
 import { TODAY } from '../data/seed.js'
-import { coachById, classLabel, studioById, parseDate, fmtMoney, rateFor } from '../data/helpers.js'
+import { classLabel, parseDate, fmtMoney } from '../data/helpers.js'
 import { SessionCard, SectionLabel, EmptyState } from '../components/ui.jsx'
 
 export default function Sustituciones() {
-  const { sessions, coaches, substituteSession, clearSubstitution } = useStore()
-  const [picking, setPicking] = useState(null) // session being substituted
+  const { sessions, coaches, substituteSession, clearSubstitution, studioById, coachById, rateFor } =
+    useStore()
+  const [picking, setPicking] = useState(null)
 
   const active = sessions
     .filter((s) => s.status === 'substituted')
@@ -86,7 +87,8 @@ export default function Sustituciones() {
               {classLabel(pickSession.classType)} · {parseDate(pickSession.date).full} {pickSession.time}
             </div>
             <div className="text-[13px] text-muted">
-              {studioById(pickSession.studioId).name} · titular {coachById(pickSession.coachId).name}
+              {studioById(pickSession.studioId)?.name} · titular{' '}
+              {coachById(pickSession.coachId)?.name}
             </div>
 
             <div className="mt-4 flex flex-col gap-2">

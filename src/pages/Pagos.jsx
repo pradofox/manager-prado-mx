@@ -1,19 +1,10 @@
 import { useState } from 'react'
 import { useStore } from '../data/store.jsx'
-import {
-  currentQuincena,
-  parseDate,
-  fmtMoney,
-  sessionPay,
-  effectiveCoachId,
-  studioById,
-  coachById,
-  classLabel,
-} from '../data/helpers.js'
+import { currentQuincena, parseDate, fmtMoney, effectiveCoachId, classLabel } from '../data/helpers.js'
 import { SectionLabel, EmptyState } from '../components/ui.jsx'
 
 export default function Pagos() {
-  const { sessions, coaches } = useStore()
+  const { sessions, coaches, payFor, studioById, coachById } = useStore()
   const [coachId, setCoachId] = useState('c_hugo')
   const q = currentQuincena()
   const [from, setFrom] = useState(q.from)
@@ -30,13 +21,12 @@ export default function Pagos() {
     )
     .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
 
-  const total = rows.reduce((sum, s) => sum + (sessionPay(s) || 0), 0)
+  const total = rows.reduce((sum, s) => sum + (payFor(s) || 0), 0)
   const coach = coachById(coachId)
 
-  // Subtotales por estudio.
   const byStudio = {}
   rows.forEach((s) => {
-    byStudio[s.studioId] = (byStudio[s.studioId] || 0) + (sessionPay(s) || 0)
+    byStudio[s.studioId] = (byStudio[s.studioId] || 0) + (payFor(s) || 0)
   })
 
   function exportCSV() {
@@ -44,18 +34,18 @@ export default function Pagos() {
     const lines = rows.map((s) => [
       s.date,
       s.time,
-      studioById(s.studioId).name,
+      studioById(s.studioId)?.name || '',
       classLabel(s.classType),
       s.room,
       s.status === 'substituted' ? 'Sí' : 'No',
-      sessionPay(s) || 0,
+      payFor(s) || 0,
     ])
     lines.push(['', '', '', '', '', 'TOTAL', total])
     const csv = [header, ...lines].map((r) => r.map((c) => `"${c}"`).join(',')).join('\n')
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
-    a.download = `pago_${coach.name.split(' ')[0].toLowerCase()}_${from}_${to}.csv`
+    a.download = `pago_${(coach?.name || 'coach').split(' ')[0].toLowerCase()}_${from}_${to}.csv`
     a.click()
     URL.revokeObjectURL(a.href)
   }
@@ -109,7 +99,7 @@ export default function Pagos() {
 
       <div className="mt-4 rounded-xl border border-fg bg-fg p-4 text-card">
         <div className="font-mono text-[10px] uppercase tracking-widest opacity-70">
-          Total a pagar · {coach.name}
+          Total a pagar · {coach?.name}
         </div>
         <div className="mt-1 text-3xl font-bold">{fmtMoney(total)}</div>
         <div className="mt-1 font-mono text-[11px] opacity-70">
@@ -126,7 +116,7 @@ export default function Pagos() {
                 key={sid}
                 className="flex items-center justify-between rounded-xl border border-line bg-card px-3.5 py-2.5"
               >
-                <span className="text-[14px] font-bold">{studioById(sid).name}</span>
+                <span className="text-[14px] font-bold">{studioById(sid)?.name}</span>
                 <span className="font-mono text-[14px] font-bold">{fmtMoney(amt)}</span>
               </div>
             ))}
@@ -160,14 +150,14 @@ export default function Pagos() {
                   {parseDate(s.date).full} · {s.time}
                 </div>
                 <div className="truncate text-[13px]">
-                  {classLabel(s.classType)} — {studioById(s.studioId).name}
+                  {classLabel(s.classType)} — {studioById(s.studioId)?.name}
                   {s.status === 'substituted' && (
                     <span className="ml-1 font-mono text-[10px] uppercase text-muted">sust.</span>
                   )}
                 </div>
               </div>
               <span className="ml-3 shrink-0 font-mono text-[13px] font-bold">
-                {sessionPay(s) != null ? fmtMoney(sessionPay(s)) : '—'}
+                {payFor(s) != null ? fmtMoney(payFor(s)) : '—'}
               </span>
             </div>
           ))}

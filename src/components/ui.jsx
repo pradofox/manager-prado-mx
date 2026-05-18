@@ -1,4 +1,5 @@
-import { studioById, coachById, classLabel, parseDate, sessionPay, fmtMoney, effectiveCoachId } from '../data/helpers.js'
+import { useStore } from '../data/store.jsx'
+import { classLabel, parseDate, effectiveCoachId, fmtMoney } from '../data/helpers.js'
 
 export function Pill({ children, tone = 'default' }) {
   const tones = {
@@ -33,11 +34,13 @@ export function EmptyState({ children }) {
 
 // Tarjeta de una clase. `accessory` se renderiza a la derecha (botón, monto, etc.)
 export function SessionCard({ session, accessory, onClick, showCoach = true }) {
+  const { studioById, coachById } = useStore()
   const studio = studioById(session.studioId)
   const date = parseDate(session.date)
   const subbed = session.status === 'substituted'
   const effCoach = coachById(effectiveCoachId(session))
   const cancelled = session.status === 'cancelled'
+  const done = session.status === 'completed'
 
   return (
     <div
@@ -52,19 +55,14 @@ export function SessionCard({ session, accessory, onClick, showCoach = true }) {
           </div>
           <div className="mt-1 truncate text-[15px] font-bold">{classLabel(session.classType)}</div>
           <div className="mt-0.5 truncate text-[13px] text-muted">
-            {studio.name} · {session.room}
+            {studio?.name || '—'} · {session.room || 's/sala'}
           </div>
           {showCoach && (
-            <div className="mt-1.5 flex items-center gap-1.5">
-              {subbed ? (
-                <>
-                  <Pill tone="sub">Sustituida</Pill>
-                  <span className="text-[12px] text-muted">{effCoach?.name}</span>
-                </>
-              ) : (
-                <span className="text-[12px] text-muted">{effCoach?.name}</span>
-              )}
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+              {subbed && <Pill tone="sub">Sustituida</Pill>}
               {cancelled && <Pill>Cancelada</Pill>}
+              {done && !subbed && <Pill>Completada</Pill>}
+              <span className="text-[12px] text-muted">{effCoach?.name || '—'}</span>
             </div>
           )}
         </div>
@@ -75,7 +73,8 @@ export function SessionCard({ session, accessory, onClick, showCoach = true }) {
 }
 
 export function PayTag({ session }) {
-  const pay = sessionPay(session)
+  const { payFor } = useStore()
+  const pay = payFor(session)
   if (pay == null) return <span className="font-mono text-[11px] text-muted">sin tarifa</span>
   return <span className="font-mono text-sm font-bold">{fmtMoney(pay)}</span>
 }
