@@ -1,6 +1,14 @@
 import { useState } from 'react'
 import { useStore } from '../data/store.jsx'
-import { currentQuincena, parseDate, fmtMoney, effectiveCoachId, classLabel } from '../data/helpers.js'
+import {
+  currentQuincena,
+  previousQuincena,
+  currentMonth,
+  parseDate,
+  fmtMoney,
+  effectiveCoachId,
+  classLabel,
+} from '../data/helpers.js'
 import { SectionLabel, EmptyState } from '../components/ui.jsx'
 
 export default function Pagos() {
@@ -52,7 +60,7 @@ export default function Pagos() {
 
   return (
     <div>
-      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+      <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
         {coaches.map((c) => (
           <button
             key={c.id}
@@ -86,16 +94,29 @@ export default function Pagos() {
           />
         </label>
       </div>
-      <button
-        onClick={() => {
-          const c = currentQuincena()
-          setFrom(c.from)
-          setTo(c.to)
-        }}
-        className="mt-2 font-mono text-[11px] uppercase tracking-wide text-muted underline"
-      >
-        Quincena actual
-      </button>
+      <div className="mt-2 flex gap-2">
+        {[
+          ['Quincena actual', currentQuincena()],
+          ['Anterior', previousQuincena()],
+          ['Este mes', currentMonth()],
+        ].map(([label, range]) => {
+          const active = from === range.from && to === range.to
+          return (
+            <button
+              key={label}
+              onClick={() => {
+                setFrom(range.from)
+                setTo(range.to)
+              }}
+              className={`rounded-full border px-3 py-1.5 text-[12px] ${
+                active ? 'border-fg bg-fg text-card font-bold' : 'border-line text-muted'
+              }`}
+            >
+              {label}
+            </button>
+          )
+        })}
+      </div>
 
       <div className="mt-4 rounded-xl border border-fg bg-fg p-4 text-card">
         <div className="font-mono text-[10px] uppercase tracking-widest opacity-70">

@@ -1,6 +1,5 @@
 // Datos mock para el prototipo. Sin backend: todo vive en memoria + localStorage.
-// Fecha ancla del demo — mantiene una mezcla creíble de clases pasadas y futuras.
-export const TODAY = '2026-05-18'
+import { todayStr, addDays } from './date.js'
 
 export const CLASS_TYPES = {
   lagree: 'Lagree',
@@ -37,13 +36,6 @@ export const rates = [
   { coachId: 'c_ana', studioId: 's_reforma', classType: 'reformer', rateMxn: 400 },
 ]
 
-export function rateFor(coachId, studioId, classType) {
-  const r = rates.find(
-    (x) => x.coachId === coachId && x.studioId === studioId && x.classType === classType,
-  )
-  return r ? r.rateMxn : null
-}
-
 // Plantilla semanal recurrente. dow: 0=Dom .. 6=Sab
 const template = [
   // Energee — Polanco
@@ -69,22 +61,18 @@ const template = [
   { studioId: 's_reforma', coachId: 'c_ana', classType: 'reformer', dow: 6, time: '09:00', room: 'Loft' },
 ]
 
-function fmtDate(d) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
 // Genera sesiones para el rango [from, to] a partir de la plantilla semanal.
 function generateSessions(from, to) {
   const out = []
-  const start = new Date(from + 'T00:00:00')
-  const end = new Date(to + 'T00:00:00')
-  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    const dow = d.getDay()
-    const dateStr = fmtDate(d)
-    template.forEach((t, i) => {
+  const today = todayStr()
+  let dateStr = from
+  let i = 0
+  while (dateStr <= to) {
+    const dow = new Date(dateStr + 'T00:00:00').getDay()
+    template.forEach((t, ti) => {
       if (t.dow !== dow) return
       out.push({
-        id: `${dateStr}_${i}`,
+        id: `${dateStr}_${ti}`,
         studioId: t.studioId,
         coachId: t.coachId,
         classType: t.classType,
@@ -92,19 +80,25 @@ function generateSessions(from, to) {
         time: t.time,
         durationMin: 50,
         room: t.room,
-        status: dateStr < TODAY ? 'completed' : 'scheduled',
+        status: dateStr < today ? 'completed' : 'scheduled',
         substitutedBy: null,
         notes: '',
       })
     })
+    dateStr = addDays(dateStr, 1)
+    if (++i > 400) break
   }
   return out.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
 }
 
+// Construye las sesiones seed ancladas a la fecha real (2 semanas atrás → 4 adelante).
 export function buildSeedSessions() {
-  const sessions = generateSessions('2026-05-04', '2026-05-31')
+  const today = todayStr()
+  const sessions = generateSessions(addDays(today, -14), addDays(today, 28))
   // Una sustitución de ejemplo: una clase pasada de Hugo cubierta por Daniela.
-  const sub = sessions.find((s) => s.coachId === 'c_hugo' && s.studioId === 's_energee' && s.status === 'completed')
+  const sub = sessions.find(
+    (s) => s.coachId === 'c_hugo' && s.studioId === 's_energee' && s.status === 'completed',
+  )
   if (sub) {
     sub.status = 'substituted'
     sub.substitutedBy = 'c_dani'

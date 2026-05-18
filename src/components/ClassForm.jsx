@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useStore } from '../data/store.jsx'
-import { CLASS_TYPES, TODAY } from '../data/seed.js'
+import { CLASS_TYPES } from '../data/seed.js'
+import { todayStr, addDays, parseDate } from '../data/helpers.js'
 
 const fieldCls =
   'mt-1 w-full rounded-lg border border-line bg-bg px-3 py-2.5 text-[14px] outline-none focus:border-fg'
@@ -23,12 +24,16 @@ export default function ClassForm() {
   const [studioId, setStudioId] = useState(session?.studioId || studios[0]?.id || '')
   const [coachId, setCoachId] = useState(session?.coachId || coaches[0]?.id || '')
   const [classType, setClassType] = useState(session?.classType || 'lagree')
-  const [date, setDate] = useState(session?.date || TODAY)
+  const [date, setDate] = useState(session?.date || todayStr())
   const [time, setTime] = useState(session?.time || '07:00')
   const [room, setRoom] = useState(session?.room || '')
   const [duration, setDuration] = useState(String(session?.durationMin || 50))
   const [status, setStatus] = useState(session?.status || 'scheduled')
+  const [notes, setNotes] = useState(session?.notes || '')
   const [rate, setRate] = useState('')
+  const [repeat, setRepeat] = useState(false)
+  const [weeks, setWeeks] = useState(8)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   // Sugerir la tarifa registrada cada vez que cambia coach/estudio/tipo.
   useEffect(() => {
@@ -40,38 +45,53 @@ export default function ClassForm() {
 
   function save() {
     const rateNum = rate.trim() === '' ? null : Number(rate)
-    const fields = {
+    const base = {
       studioId,
       coachId,
       classType,
-      date,
       time,
       room: room.trim(),
       durationMin: Number(duration) || 50,
+      notes: notes.trim(),
     }
     if (rateNum != null && !Number.isNaN(rateNum) && rateNum > 0) {
       store.upsertRate(coachId, studioId, classType, rateNum)
     }
     if (isNew) {
-      store.addSession(fields)
+      if (repeat && weeks > 1) {
+        const list = Array.from({ length: weeks }, (_, i) => ({
+          ...base,
+          date: addDays(date, i * 7),
+        }))
+        store.addSessions(list)
+      } else {
+        store.addSession({ ...base, date })
+      }
     } else {
-      store.updateSession(session.id, substituted ? fields : { ...fields, status })
+      store.updateSession(
+        session.id,
+        substituted ? { ...base, date } : { ...base, date, status },
+      )
     }
     store.closeEditor()
   }
 
   function remove() {
+    if (!confirmDelete) {
+      setConfirmDelete(true)
+      return
+    }
     store.deleteSession(session.id)
     store.closeEditor()
   }
 
   return (
     <div
-      className="fixed inset-0 z-30 flex items-end justify-center bg-fg/40"
+      className="animate-fade fixed inset-0 z-30 flex items-end justify-center bg-fg/40"
       onClick={store.closeEditor}
     >
       <div
-        className="mx-auto max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-2xl border-t border-line bg-card p-4 pb-8"
+        className="animate-sheet mx-auto max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-2xl border-t border-line bg-card p-4 pb-8"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">
@@ -157,6 +177,57 @@ export default function ClassForm() {
             </span>
           </Field>
 
+          <Field label="Notas (opcional)">
+            <input
+              className={fieldCls}
+              value={notes}
+              placeholder="Ej. clase de prueba, evento especial…"
+              onChange={(e) => setNotes(e.target.value)}
+            />
+          </Field>
+
+          {isNew && (
+            <div className="rounded-lg border border-line bg-bg p-3">
+              <label className="flex items-center justify-between">
+                <span className="text-[13px] font-bold">Repetir cada semana</span>
+                <button
+                  type="button"
+                  onClick={() => setRepeat((v) => !v)}
+                  className={`relative h-6 w-11 rounded-full transition-colors ${repeat ? 'bg-fg' : 'bg-line'}`}
+                >
+                  <span
+                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-card transition-all ${repeat ? 'left-[1.375rem]' : 'left-0.5'}`}
+                  />
+                </button>
+              </label>
+              {repeat && (
+                <div className="mt-3">
+                  <span className="font-mono text-[10px] uppercase tracking-widest text-muted">
+                    ¿Por cuántas semanas?
+                  </span>
+                  <div className="mt-1.5 flex flex-wrap gap-2">
+                    {[4, 8, 12, 16].map((w) => (
+                      <button
+                        key={w}
+                        type="button"
+                        onClick={() => setWeeks(w)}
+                        className={`rounded-lg border px-3 py-1.5 text-[12px] ${
+                          weeks === w ? 'border-fg bg-fg text-card font-bold' : 'border-line text-muted'
+                        }`}
+                      >
+                        {w}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-2 font-mono text-[10px] text-muted">
+                    Crea {weeks} clases: cada {parseDate(date).dow} hasta el{' '}
+                    {parseDate(addDays(date, (weeks - 1) * 7)).full}.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {!isNew && !substituted && (
             <Field label="Estado">
               <div className="mt-1 grid grid-cols-3 gap-2">
@@ -188,16 +259,18 @@ export default function ClassForm() {
 
         <button
           onClick={save}
-          className="mt-5 w-full rounded-xl bg-fg py-3 text-[14px] font-bold text-card"
+          className="mt-5 w-full rounded-xl bg-fg py-3 text-[14px] font-bold text-card active:scale-[0.99]"
         >
-          {isNew ? 'Crear clase' : 'Guardar cambios'}
+          {isNew ? (repeat && weeks > 1 ? `Crear ${weeks} clases` : 'Crear clase') : 'Guardar cambios'}
         </button>
         {!isNew && (
           <button
             onClick={remove}
-            className="mt-2 w-full py-2.5 font-mono text-[11px] uppercase tracking-wide text-muted underline"
+            className={`mt-2 w-full py-2.5 font-mono text-[11px] uppercase tracking-wide ${
+              confirmDelete ? 'font-bold text-fg' : 'text-muted'
+            }`}
           >
-            Eliminar clase
+            {confirmDelete ? 'Toca de nuevo para confirmar' : 'Eliminar clase'}
           </button>
         )}
       </div>

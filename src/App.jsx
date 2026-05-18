@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { parseDate } from './data/helpers.js'
-import { TODAY } from './data/seed.js'
+import { parseDate, todayStr } from './data/helpers.js'
 import { useStore } from './data/store.jsx'
 import ClassForm from './components/ClassForm.jsx'
 import Horarios from './pages/Horarios.jsx'
@@ -45,8 +44,51 @@ function Icon({ id, active }) {
   )
 }
 
+function Settings({ onClose }) {
+  const { resetDemo } = useStore()
+  const [confirm, setConfirm] = useState(false)
+  return (
+    <div className="animate-fade fixed inset-0 z-30 flex items-end justify-center bg-fg/40" onClick={onClose}>
+      <div
+        className="animate-sheet mx-auto w-full max-w-md rounded-t-2xl border-t border-line bg-card p-4 pb-8"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-[16px] font-bold">Ajustes</h2>
+          <button onClick={onClose} className="font-mono text-[11px] uppercase tracking-wide text-muted">
+            Cerrar
+          </button>
+        </div>
+        <p className="font-mono text-[11px] leading-relaxed text-muted">
+          Prototipo de Studio Manager. Los datos (clases, equipo, tarifas) se guardan solo en este
+          dispositivo, en el navegador. No hay cuenta ni sincronización todavía.
+        </p>
+        <button
+          onClick={() => {
+            if (!confirm) {
+              setConfirm(true)
+              return
+            }
+            resetDemo()
+            onClose()
+          }}
+          className={`mt-4 w-full rounded-xl border py-3 text-[13px] ${
+            confirm ? 'border-fg bg-fg font-bold text-card' : 'border-line text-fg'
+          }`}
+        >
+          {confirm ? 'Confirmar — esto borra tus cambios' : 'Reiniciar datos de demo'}
+        </button>
+        <div className="mt-3 text-center font-mono text-[10px] uppercase tracking-widest text-muted">
+          Studio Manager · PRADO · v0.2
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function App() {
   const [tab, setTab] = useState('horarios')
+  const [settings, setSettings] = useState(false)
   const { editing, openEditor } = useStore()
   const Active = TABS.find((t) => t.id === tab).Page
 
@@ -57,9 +99,27 @@ export default function App() {
           <div className="text-[15px] font-bold leading-none">Studio Manager</div>
           <div className="mt-1 font-mono text-[10px] uppercase tracking-widest text-muted">PRADO · Hugo Prado</div>
         </div>
-        <div className="text-right">
-          <div className="font-mono text-[11px] uppercase text-muted">Hoy</div>
-          <div className="font-mono text-[13px] font-bold">{parseDate(TODAY).full}</div>
+        <div className="flex items-center gap-3">
+          <div className="text-right">
+            <div className="font-mono text-[10px] uppercase text-muted">Hoy</div>
+            <div className="font-mono text-[13px] font-bold">{parseDate(todayStr()).full}</div>
+          </div>
+          <button
+            onClick={() => setSettings(true)}
+            aria-label="Ajustes"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-line"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16">
+              <circle cx="8" cy="8" r="2.4" fill="none" stroke="#000" strokeWidth="1.4" />
+              <path
+                d="M8 1.3v2M8 12.7v2M1.3 8h2M12.7 8h2M3.3 3.3l1.4 1.4M11.3 11.3l1.4 1.4M12.7 3.3l-1.4 1.4M4.7 11.3l-1.4 1.4"
+                fill="none"
+                stroke="#000"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
         </div>
       </header>
 
@@ -100,6 +160,7 @@ export default function App() {
       </nav>
 
       {editing && <ClassForm />}
+      {settings && <Settings onClose={() => setSettings(false)} />}
     </div>
   )
 }

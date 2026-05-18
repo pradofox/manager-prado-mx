@@ -65,6 +65,9 @@ export function SessionCard({ session, accessory, onClick, showCoach = true }) {
               <span className="text-[12px] text-muted">{effCoach?.name || '—'}</span>
             </div>
           )}
+          {session.notes && (
+            <div className="mt-1.5 truncate font-mono text-[11px] text-muted">{session.notes}</div>
+          )}
         </div>
         {accessory && <div className="shrink-0 text-right">{accessory}</div>}
       </div>

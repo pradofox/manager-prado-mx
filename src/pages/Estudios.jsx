@@ -1,7 +1,14 @@
 import { useState } from 'react'
 import { useStore } from '../data/store.jsx'
-import { TODAY } from '../data/seed.js'
-import { addDays, parseDate, fmtMoney, classLabel, effectiveCoachId, isToday } from '../data/helpers.js'
+import {
+  addDays,
+  todayStr,
+  parseDate,
+  fmtMoney,
+  classLabel,
+  effectiveCoachId,
+  isToday,
+} from '../data/helpers.js'
 import { SessionCard, SectionLabel, EmptyState, Pill } from '../components/ui.jsx'
 
 export default function Estudios() {
@@ -11,9 +18,10 @@ export default function Estudios() {
   const [name, setName] = useState('')
   const [loc, setLoc] = useState('')
 
-  const windowEnd = addDays(TODAY, 6)
+  const today = todayStr()
+  const windowEnd = addDays(today, 6)
   const week = sessions
-    .filter((s) => s.studioId === studioId && s.date >= TODAY && s.date <= windowEnd && s.status !== 'cancelled')
+    .filter((s) => s.studioId === studioId && s.date >= today && s.date <= windowEnd && s.status !== 'cancelled')
     .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
 
   const total = week.reduce((sum, s) => sum + (payFor(s) || 0), 0)
@@ -36,7 +44,7 @@ export default function Estudios() {
 
   return (
     <div>
-      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+      <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
         {studios.map((st) => (
           <button
             key={st.id}

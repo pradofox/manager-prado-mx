@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '../data/store.jsx'
-import { TODAY } from '../data/seed.js'
-import { classLabel, parseDate, fmtMoney } from '../data/helpers.js'
+import { classLabel, parseDate, fmtMoney, todayStr } from '../data/helpers.js'
 import { SessionCard, SectionLabel, EmptyState } from '../components/ui.jsx'
 
 export default function Sustituciones() {
@@ -13,8 +12,9 @@ export default function Sustituciones() {
     .filter((s) => s.status === 'substituted')
     .sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time))
 
+  const today = todayStr()
   const upcoming = sessions
-    .filter((s) => s.status === 'scheduled' && s.date >= TODAY)
+    .filter((s) => s.status === 'scheduled' && s.date >= today)
     .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
     .slice(0, 12)
 
@@ -73,11 +73,11 @@ export default function Sustituciones() {
 
       {pickSession && (
         <div
-          className="fixed inset-0 z-20 flex items-end justify-center bg-fg/40"
+          className="animate-fade fixed inset-0 z-20 flex items-end justify-center bg-fg/40"
           onClick={() => setPicking(null)}
         >
           <div
-            className="mx-auto w-full max-w-md rounded-t-2xl border-t border-line bg-card p-4 pb-8"
+            className="animate-sheet mx-auto w-full max-w-md rounded-t-2xl border-t border-line bg-card p-4 pb-8"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="font-mono text-[10px] uppercase tracking-widest text-muted">

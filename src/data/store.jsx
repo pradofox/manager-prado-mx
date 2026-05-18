@@ -61,8 +61,8 @@ export function StoreProvider({ children }) {
     rateFor(effectiveCoachId(session), session.studioId, session.classType)
 
   // --- acciones: clases ---
-  function addSession(s) {
-    const session = {
+  function makeSession(s) {
+    return {
       id: uid('s'),
       durationMin: 50,
       status: defaultStatus(s.date),
@@ -70,7 +70,16 @@ export function StoreProvider({ children }) {
       notes: '',
       ...s,
     }
+  }
+
+  function addSession(s) {
+    const session = makeSession(s)
     setData((d) => ({ ...d, sessions: [...d.sessions, session] }))
+  }
+
+  function addSessions(list) {
+    const made = list.map(makeSession)
+    setData((d) => ({ ...d, sessions: [...d.sessions, ...made] }))
   }
 
   function updateSession(id, patch) {
@@ -142,6 +151,7 @@ export function StoreProvider({ children }) {
     rateFor,
     payFor,
     addSession,
+    addSessions,
     updateSession,
     deleteSession,
     substituteSession,
