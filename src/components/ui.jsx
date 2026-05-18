@@ -4,12 +4,13 @@ import { classLabel, parseDate, effectiveCoachId, fmtMoney } from '../data/helpe
 export function Pill({ children, tone = 'default' }) {
   const tones = {
     default: 'bg-bg text-muted',
-    fg: 'bg-fg text-card',
     sub: 'bg-fg text-card',
     today: 'border border-fg text-fg',
   }
   return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide ${tones[tone]}`}>
+    <span
+      className={`inline-flex items-center rounded-full px-2 py-0.5 font-mono text-label uppercase tracking-wide ${tones[tone]}`}
+    >
       {children}
     </span>
   )
@@ -17,8 +18,8 @@ export function Pill({ children, tone = 'default' }) {
 
 export function SectionLabel({ children, right }) {
   return (
-    <div className="mb-2 mt-6 flex items-end justify-between first:mt-0">
-      <h2 className="font-mono text-[11px] uppercase tracking-widest text-muted">{children}</h2>
+    <div className="mb-3 mt-7 flex items-end justify-between first:mt-0">
+      <h2 className="font-mono text-label uppercase tracking-widest text-muted">{children}</h2>
       {right}
     </div>
   )
@@ -26,7 +27,7 @@ export function SectionLabel({ children, right }) {
 
 export function EmptyState({ children }) {
   return (
-    <div className="rounded-xl border border-dashed border-line py-10 text-center font-mono text-xs text-muted">
+    <div className="rounded-xl border border-dashed border-line px-4 py-10 text-center font-mono text-micro text-muted">
       {children}
     </div>
   )
@@ -45,28 +46,28 @@ export function SessionCard({ session, accessory, onClick, showCoach = true }) {
   return (
     <div
       onClick={onClick}
-      className={`rounded-xl border border-line bg-card p-3.5 ${onClick ? 'cursor-pointer active:bg-bg' : ''} ${cancelled ? 'opacity-50' : ''}`}
+      className={`rounded-xl border border-line bg-card p-4 ${onClick ? 'cursor-pointer transition-colors hover:border-muted active:bg-bg' : ''} ${cancelled ? 'opacity-50' : ''}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-sm font-bold">{session.time}</span>
-            <span className="font-mono text-[11px] text-muted">{date.full}</span>
+            <span className="font-mono text-meta font-bold">{session.time}</span>
+            <span className="font-mono text-micro text-muted">{date.full}</span>
           </div>
-          <div className="mt-1 truncate text-[15px] font-bold">{classLabel(session.classType)}</div>
-          <div className="mt-0.5 truncate text-[13px] text-muted">
+          <div className="mt-1.5 truncate text-body font-bold">{classLabel(session.classType)}</div>
+          <div className="mt-0.5 truncate text-meta text-muted">
             {studio?.name || '—'} · {session.room || 's/sala'}
           </div>
           {showCoach && (
-            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
               {subbed && <Pill tone="sub">Sustituida</Pill>}
               {cancelled && <Pill>Cancelada</Pill>}
               {done && !subbed && <Pill>Completada</Pill>}
-              <span className="text-[12px] text-muted">{effCoach?.name || '—'}</span>
+              <span className="text-micro text-muted">{effCoach?.name || '—'}</span>
             </div>
           )}
           {session.notes && (
-            <div className="mt-1.5 truncate font-mono text-[11px] text-muted">{session.notes}</div>
+            <div className="mt-2 truncate font-mono text-label text-muted">{session.notes}</div>
           )}
         </div>
         {accessory && <div className="shrink-0 text-right">{accessory}</div>}
@@ -78,6 +79,16 @@ export function SessionCard({ session, accessory, onClick, showCoach = true }) {
 export function PayTag({ session }) {
   const { payFor } = useStore()
   const pay = payFor(session)
-  if (pay == null) return <span className="font-mono text-[11px] text-muted">sin tarifa</span>
-  return <span className="font-mono text-sm font-bold">{fmtMoney(pay)}</span>
+  if (pay == null) return <span className="font-mono text-label text-muted">sin tarifa</span>
+  return <span className="font-mono text-meta font-bold">{fmtMoney(pay)}</span>
+}
+
+// Tarjeta de estadística (clases, proyectado, etc.)
+export function StatCard({ label, value }) {
+  return (
+    <div className="rounded-xl border border-line bg-card p-4">
+      <div className="font-mono text-label uppercase tracking-widest text-muted">{label}</div>
+      <div className="mt-1.5 text-figure font-bold">{value}</div>
+    </div>
+  )
 }

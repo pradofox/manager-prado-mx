@@ -17,7 +17,7 @@ export default function Sustituciones() {
 
   return (
     <div>
-      <p className="font-mono text-[11px] leading-relaxed text-muted">
+      <p className="font-mono text-micro leading-relaxed text-muted">
         Marca una clase como cubierta por otro coach. El ingreso se reasigna automáticamente a quien
         la dio.
       </p>
@@ -26,7 +26,7 @@ export default function Sustituciones() {
       {active.length === 0 ? (
         <EmptyState>Ninguna clase sustituida</EmptyState>
       ) : (
-        <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-3">
           {active.map((s) => (
             <SessionCard
               key={s.id}
@@ -34,7 +34,7 @@ export default function Sustituciones() {
               accessory={
                 <button
                   onClick={() => clearSubstitution(s.id)}
-                  className="rounded-full border border-line px-3 py-1.5 font-mono text-[11px] uppercase"
+                  className="rounded-full border border-line px-3 py-1.5 font-mono text-label uppercase"
                 >
                   Quitar
                 </button>
@@ -48,7 +48,7 @@ export default function Sustituciones() {
       {upcoming.length === 0 ? (
         <EmptyState>Sin clases programadas</EmptyState>
       ) : (
-        <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-3">
           {upcoming.map((s) => (
             <SessionCard
               key={s.id}
@@ -56,7 +56,7 @@ export default function Sustituciones() {
               accessory={
                 <button
                   onClick={() => openSubPicker(s)}
-                  className="rounded-full bg-fg px-3 py-1.5 font-mono text-[11px] uppercase text-card"
+                  className="rounded-full bg-fg px-3 py-1.5 font-mono text-label uppercase text-card"
                 >
                   Sustituir
                 </button>

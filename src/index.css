@@ -1,14 +1,32 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #F0F0F0;
-  --color-fg: #000000;
-  --color-muted: #888888;
-  --color-line: #D6D6D6;
-  --color-card: #FFFFFF;
+  /* --- Paleta --- */
+  --color-bg: #F0F0F0;       /* fondo de la app */
+  --color-fg: #000000;       /* texto / acentos */
+  --color-muted: #888888;    /* texto secundario */
+  --color-line: #D9D9D9;     /* bordes / divisores */
+  --color-card: #FFFFFF;     /* superficies elevadas */
+
   --font-sans: "Geist", system-ui, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, monospace;
+
+  /* --- Escala tipográfica (rol → tamaño) ---
+     display 28 · figure 22 · title 17 · body 15 · meta 13 · micro 12 · label 10
+     label y micro van casi siempre en mono mayúsculas. */
+  --text-display: 1.75rem;   --text-display--line-height: 1.1;
+  --text-figure: 1.375rem;   --text-figure--line-height: 1.15;
+  --text-title: 1.0625rem;   --text-title--line-height: 1.3;
+  --text-body: 0.9375rem;    --text-body--line-height: 1.45;
+  --text-meta: 0.8125rem;    --text-meta--line-height: 1.4;
+  --text-micro: 0.75rem;     --text-micro--line-height: 1.4;
+  --text-label: 0.625rem;    --text-label--line-height: 1.4;
 }
+
+/* --- Ritmo de espaciado (múltiplos de 4px) ---
+   padding de tarjeta: 16 (p-4) · gap entre tarjetas: 12 (gap-3)
+   separación entre secciones: 24 (mt-6) · gap en grids: 12 (gap-3)
+   gap de chips: 8 (gap-2) · radios: tarjeta 12 (rounded-xl), hoja 16 (rounded-2xl) */
 
 * {
   -webkit-tap-highlight-color: transparent;
@@ -19,14 +37,11 @@ html, body {
   background: var(--color-bg);
   color: var(--color-fg);
   font-family: var(--font-sans);
+  font-weight: 400;
   -webkit-font-smoothing: antialiased;
 }
 
-body {
-  font-weight: 400;
-}
-
-input, select, button {
+input, select, button, textarea {
   font-family: inherit;
 }
 
@@ -41,6 +56,5 @@ input, select, button {
 .animate-sheet { animation: sheet-in 0.24s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .animate-fade { animation: fade-in 0.16s ease-out; }
 
-/* Oculta el scrollbar horizontal de los chips */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

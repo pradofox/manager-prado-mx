@@ -9,20 +9,20 @@ export default function SubstitutePicker() {
 
   return (
     <div
-      className="animate-fade absolute inset-0 z-20 flex items-end justify-center bg-fg/40"
+      className="animate-fade fixed inset-0 z-20 flex items-end justify-center bg-fg/40 md:items-center md:p-6"
       onClick={closeSubPicker}
     >
       <div
-        className="animate-sheet w-full max-w-md rounded-t-2xl border-t border-line bg-card p-4 pb-8"
+        className="animate-sheet w-full max-w-md rounded-t-2xl border border-line bg-card p-5 pb-8 md:rounded-2xl md:pb-5"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="font-mono text-[10px] uppercase tracking-widest text-muted">
+        <div className="font-mono text-label uppercase tracking-widest text-muted">
           ¿Quién cubre esta clase?
         </div>
-        <div className="mt-1 text-[15px] font-bold">
+        <div className="mt-1.5 text-body font-bold">
           {classLabel(ps.classType)} · {parseDate(ps.date).full} {ps.time}
         </div>
-        <div className="text-[13px] text-muted">
+        <div className="text-meta text-muted">
           {studioById(ps.studioId)?.name} · titular {coachById(ps.coachId)?.name}
         </div>
 
@@ -38,10 +38,10 @@ export default function SubstitutePicker() {
                     substituteSession(ps.id, c.id)
                     closeSubPicker()
                   }}
-                  className="flex items-center justify-between rounded-xl border border-line px-3.5 py-3 text-left active:bg-bg"
+                  className="flex items-center justify-between rounded-xl border border-line px-4 py-3 text-left active:bg-bg"
                 >
-                  <span className="text-[14px] font-bold">{c.name}</span>
-                  <span className="font-mono text-[12px] text-muted">
+                  <span className="text-body font-bold">{c.name}</span>
+                  <span className="font-mono text-micro text-muted">
                     {rate != null ? fmtMoney(rate) : 'sin tarifa'}
                   </span>
                 </button>
@@ -50,7 +50,7 @@ export default function SubstitutePicker() {
         </div>
         <button
           onClick={closeSubPicker}
-          className="mt-3 w-full py-2 font-mono text-[11px] uppercase tracking-wide text-muted"
+          className="mt-3 w-full py-2.5 font-mono text-label uppercase tracking-wide text-muted"
         >
           Cancelar
         </button>
