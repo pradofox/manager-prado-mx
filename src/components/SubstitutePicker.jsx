@@ -30,7 +30,7 @@ export default function SubstitutePicker() {
           {coaches
             .filter((c) => c.id !== ps.coachId)
             .map((c) => {
-              const rate = rateFor(c.id, ps.studioId, ps.classType)
+              const rate = rateFor(c.id, ps.studioId, ps.classType, ps.date)
               return (
                 <button
                   key={c.id}

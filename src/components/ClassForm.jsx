@@ -35,10 +35,11 @@ export default function ClassForm() {
   const [weeks, setWeeks] = useState(8)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
+  // Sugiere la tarifa vigente A LA FECHA de la clase (no la de hoy).
   useEffect(() => {
-    const r = rateFor(coachId, studioId, classType)
+    const r = rateFor(coachId, studioId, classType, date)
     setRate(r != null ? String(r) : '')
-  }, [coachId, studioId, classType, rateFor])
+  }, [coachId, studioId, classType, date, rateFor])
 
   const substituted = session?.status === 'substituted'
 
@@ -58,7 +59,13 @@ export default function ClassForm() {
     }
     if (isNew) {
       if (repeat && weeks > 1) {
-        const list = Array.from({ length: weeks }, (_, i) => ({ ...base, date: addDays(date, i * 7) }))
+        // Una serie comparte seriesId para poder editarla/cancelarla junta.
+        const seriesId = 'series_' + Date.now().toString(36)
+        const list = Array.from({ length: weeks }, (_, i) => ({
+          ...base,
+          date: addDays(date, i * 7),
+          seriesId,
+        }))
         store.addSessions(list)
       } else {
         store.addSession({ ...base, date })
@@ -69,12 +76,13 @@ export default function ClassForm() {
     store.closeEditor()
   }
 
-  function remove() {
-    if (!confirmDelete) {
-      setConfirmDelete(true)
-      return
-    }
+  function removeOne() {
     store.deleteSession(session.id)
+    store.closeEditor()
+  }
+
+  function removeSeries() {
+    store.deleteSeries(session.seriesId, session.date)
     store.closeEditor()
   }
 
@@ -256,15 +264,37 @@ export default function ClassForm() {
         >
           {isNew ? (repeat && weeks > 1 ? `Crear ${weeks} clases` : 'Crear clase') : 'Guardar cambios'}
         </button>
-        {!isNew && (
+        {!isNew && !confirmDelete && (
           <button
-            onClick={remove}
-            className={`mt-2 w-full py-2.5 font-mono text-label uppercase tracking-wide ${
-              confirmDelete ? 'font-bold text-fg' : 'text-muted'
-            }`}
+            onClick={() => setConfirmDelete(true)}
+            className="mt-2 w-full py-2.5 font-mono text-label uppercase tracking-wide text-muted"
           >
-            {confirmDelete ? 'Toca de nuevo para confirmar' : 'Eliminar clase'}
+            Eliminar clase
           </button>
+        )}
+        {!isNew && confirmDelete && (
+          <div className="mt-2 flex flex-col gap-2">
+            <button
+              onClick={removeOne}
+              className="w-full rounded-xl border border-fg py-2.5 font-mono text-label uppercase tracking-wide font-bold text-fg"
+            >
+              {session.seriesId ? 'Eliminar solo esta clase' : 'Confirmar — eliminar clase'}
+            </button>
+            {session.seriesId && (
+              <button
+                onClick={removeSeries}
+                className="w-full rounded-xl border border-line py-2.5 font-mono text-label uppercase tracking-wide text-muted"
+              >
+                Eliminar esta y las siguientes de la serie
+              </button>
+            )}
+            <button
+              onClick={() => setConfirmDelete(false)}
+              className="w-full py-1 font-mono text-label uppercase tracking-wide text-muted"
+            >
+              Cancelar
+            </button>
+          </div>
         )}
       </div>
     </div>

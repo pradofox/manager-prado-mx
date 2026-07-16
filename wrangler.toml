@@ -8,9 +8,13 @@ directory = "./dist"
 binding = "ASSETS"
 not_found_handling = "single-page-application"
 
-[[kv_namespaces]]
-binding = "STUDIO_STATE"
-id = "0013d561280844c0b6ffe0b886e83a76"
+[[d1_databases]]
+binding = "DB"
+database_name = "studio-manager-db"
+database_id = "a528ade8-4be1-41af-bb0f-3441702d93d6"
+
+# KV del prototipo anterior (blob JSON) — conservado como respaldo un mes.
+# El estado vivo ahora es D1. Namespace: studio-manager-state 0013d561...
 
 [[routes]]
 pattern = "manager.prado-mx.com"

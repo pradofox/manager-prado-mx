@@ -3,6 +3,7 @@ import { parseDate, todayStr } from './data/helpers.js'
 import { useStore } from './data/store.jsx'
 import ClassForm from './components/ClassForm.jsx'
 import SubstitutePicker from './components/SubstitutePicker.jsx'
+import DayClose from './components/DayClose.jsx'
 import Horarios from './pages/Horarios.jsx'
 import Pagos from './pages/Pagos.jsx'
 import Sustituciones from './pages/Sustituciones.jsx'
@@ -107,7 +108,7 @@ function Settings({ onClose }) {
           {confirm ? 'Confirmar — esto borra tus cambios' : 'Reiniciar datos de demo'}
         </button>
         <div className="mt-4 text-center font-mono text-label uppercase tracking-widest text-muted">
-          Studio Manager · PRADO · v0.4
+          Studio Manager · PRADO · v0.5
         </div>
       </div>
     </div>
@@ -246,6 +247,7 @@ export default function App() {
       {editing && <ClassForm />}
       {settings && <Settings onClose={() => setSettings(false)} />}
       <SubstitutePicker />
+      <DayClose />
     </div>
   )
 }

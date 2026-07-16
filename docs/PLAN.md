@@ -104,28 +104,37 @@ verdad, no para venderla como SaaS. Los umbrales del handoff (§2, §10) siguen 
 > **Regla:** cada fase tiene un gate. No se pasa a la siguiente sin cumplirlo.
 > Features fuera de este plan = scope creep (ver handoff §10).
 
-### Fase 0 — Correctness del dinero (bloqueante, ~2-3 sesiones)
+### Fase 0 — Correctness del dinero ✅ COMPLETADA (2026-07-16, Opus 4.8)
 
 *Nada nuevo visible; que lo que existe sea confiable.*
 
-- [ ] **Migrar KV → D1.** El modelo es relacional (handoff §3: `studios`, `coaches`,
-      `coach_rates`, `class_sessions`). Crear D1 en la cuenta CF, migrations en
-      `/supabase/migrations` → renombrar a `/db/migrations`. API por entidad
-      (`GET/POST /api/sessions`, etc.) con updates por fila — se acaba el blob único
-      y el last-write-wins.
-- [ ] **Tarifas con vigencia.** `coach_rates` gana `effective_from`/`effective_to`.
-      `payFor(session)` resuelve la tarifa vigente EN LA FECHA de la clase.
-- [ ] **Snapshot de pago.** Al marcar `completed`/`substituted` se congela
-      `paid_rate_mxn` en la fila de la sesión. Pagos suma snapshots, no recalcula.
-- [ ] **Cierre de día.** Al abrir la app: "Ayer tenías 3 clases — ¿se dieron?"
-      [✓ todas] [revisar una por una]. Es UNA pantalla; resuelve el defecto #1 sin
-      automatismo ciego (una clase pudo no darse).
-- [ ] **Series de recurrencia.** `series_id` en sesiones; editar/cancelar "esta clase"
-      vs "toda la serie".
-- [ ] Tests de la lógica de dinero (vitest): tarifa por fecha, snapshot, quincena.
+- [x] **Migrar KV → D1.** D1 `studio-manager-db` (`a528ade8...`), migración en
+      `db/migrations/0001_init.sql`. API por entidad (`worker/index.js`) con updates
+      por fila — se acabó el blob único y el last-write-wins. KV conservado 1 mes.
+- [x] **Tarifas con vigencia.** `coach_rates` con `effective_from`/`effective_to`.
+      `resolveRate` (en `src/data/money.js`) resuelve la tarifa vigente A LA FECHA.
+- [x] **Snapshot de pago.** `paid_rate_mxn` se congela server-side al pasar a
+      `completed`/`substituted` (`resolveSnapshot` en el worker). Pagos suma snapshots.
+      Verificado: cambiar tarifa hoy NO mueve pagos pasados; futuros sí proyectan la nueva.
+- [x] **Cierre de día.** `src/components/DayClose.jsx` — modal al abrir con clases
+      pasadas sin resolver → completadas/canceladas. Resuelve el defecto #1.
+- [x] **Series de recurrencia.** `series_id` en sesiones; al borrar, alcance
+      "solo esta" vs "esta y las siguientes de la serie".
+- [x] Tests de dinero (vitest, `src/data/money.test.js`): 13 tests, tarifa por fecha,
+      vigencia, snapshot, sustitución, quincena. `npm test`.
 
-**Gate F0:** dos dispositivos editando a la vez no pierden datos; una tarifa cambiada
-hoy NO altera pagos pasados; el flujo de ayer→pagos funciona sin editar clases a mano.
+**Gate F0 ✅ verificado end-to-end contra D1 en producción:**
+- Dos ediciones simultáneas de filas distintas: ambas conservadas, nada perdido.
+- Tarifa Hugo/Energee/lagree 450→500: clase de julio pasado sigue $450 (snapshot),
+  clase futura proyecta $500.
+- Clase pasada programada → cierre de día → completada → $350 y aparece en Pagos.
+- Frontend live: quincena anterior de Hugo = $8,750 (21 clases) desde snapshots.
+
+**Nota técnica (para Fase 1+):** D1 tiene un pequeño lag de réplica en lecturas
+tras una escritura. NO causa pérdida de datos — el frontend reconcilia con la
+respuesta autoritativa del POST/PATCH, no re-consultando `/api/bootstrap`. Un segundo
+dispositivo puede ver datos ~1s viejos hasta recargar. Aceptable para prototipo; si
+molesta, usar la Sessions API de D1 con bookmarks de read-your-writes.
 
 ### Fase 1 — Acceso + subs por WhatsApp (~2-3 sesiones)
 

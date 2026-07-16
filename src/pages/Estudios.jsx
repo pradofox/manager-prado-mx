@@ -27,7 +27,8 @@ export default function Estudios() {
     .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
 
   const total = week.reduce((sum, s) => sum + (payFor(s) || 0), 0)
-  const studioRates = rates.filter((r) => r.studioId === studioId)
+  // Solo tarifas vigentes (effectiveTo null) — no el histórico.
+  const studioRates = rates.filter((r) => r.studioId === studioId && !r.effectiveTo)
 
   const byDay = {}
   week.forEach((s) => {

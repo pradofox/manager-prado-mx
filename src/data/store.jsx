@@ -1,31 +1,18 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
-import {
-  studios as seedStudios,
-  coaches as seedCoaches,
-  rates as seedRates,
-  buildSeedSessions,
-} from './seed.js'
-import { effectiveCoachId, defaultStatus } from './helpers.js'
+import { todayStr, defaultStatus } from './helpers.js'
+import { computePay, resolveRate } from './money.js'
 
 const StoreContext = createContext(null)
-const LS_KEY = 'sm_data_v2'
-const API = '/api/state'
+const LS_KEY = 'sm_data_v3' // v3: modelo relacional con vigencia + snapshot
 
-function initialData() {
-  return {
-    studios: seedStudios,
-    coaches: seedCoaches,
-    rates: seedRates,
-    sessions: buildSeedSessions(),
-  }
-}
+const EMPTY = { studios: [], coaches: [], rates: [], sessions: [] }
 
 function isValid(d) {
-  return d && d.studios && d.coaches && d.rates && d.sessions
+  return d && Array.isArray(d.studios) && Array.isArray(d.coaches) && Array.isArray(d.rates) && Array.isArray(d.sessions)
 }
 
-// Carga rápida desde localStorage (caché) para render instantáneo.
-function loadLocal() {
+// Caché de lectura para pintar al instante y sobrevivir sin conexión.
+function loadCache() {
   try {
     const raw = localStorage.getItem(LS_KEY)
     if (raw) {
@@ -33,120 +20,150 @@ function loadLocal() {
       if (isValid(d)) return d
     }
   } catch {
-    // localStorage corrupto o no disponible
+    // ignore
   }
-  return initialData()
+  return EMPTY
 }
 
 function uid(prefix) {
   return prefix + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
 }
 
+async function api(method, path, body) {
+  const res = await fetch(path, {
+    method,
+    headers: body ? { 'content-type': 'application/json' } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  })
+  if (!res.ok) throw new Error('http ' + res.status)
+  return res.json()
+}
+
 export function StoreProvider({ children }) {
-  const [data, setData] = useState(loadLocal)
+  const [data, setData] = useState(loadCache)
   const [editing, setEditing] = useState(null) // null | 'new' | sessionObject
-  const [subPicking, setSubPicking] = useState(null) // sesión a sustituir | null
+  const [subPicking, setSubPicking] = useState(null)
   const [sync, setSync] = useState('syncing') // 'syncing' | 'online' | 'offline'
 
   const dataRef = useRef(data)
   dataRef.current = data
-  const readyRef = useRef(false) // true cuando ya reconciliamos con el servidor
-  const timerRef = useRef(null)
 
-  // Carga inicial: traer el estado de la nube y reconciliar.
+  // Carga inicial desde el servidor (D1). Siembra sola si está vacío.
   useEffect(() => {
     let cancelled = false
-    fetch(API)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error('http'))))
+    api('GET', `/api/bootstrap?today=${todayStr()}`)
       .then((server) => {
         if (cancelled) return
-        if (isValid(server)) {
-          setData(server)
-        } else {
-          // El servidor está vacío: lo sembramos con lo que tenemos.
-          fetch(API, {
-            method: 'PUT',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify(dataRef.current),
-          }).catch(() => {})
-        }
-        readyRef.current = true
+        if (isValid(server)) setData(server)
         setSync('online')
       })
       .catch(() => {
-        if (cancelled) return
-        readyRef.current = true
-        setSync('offline')
+        if (!cancelled) setSync('offline')
       })
     return () => {
       cancelled = true
     }
   }, [])
 
-  // Guardado: localStorage siempre; nube con debounce.
+  // Persistir la caché de lectura en cada cambio.
   useEffect(() => {
     try {
       localStorage.setItem(LS_KEY, JSON.stringify(data))
     } catch {
       // ignore
     }
-    if (!readyRef.current) return
-    clearTimeout(timerRef.current)
-    timerRef.current = setTimeout(() => {
-      setSync('syncing')
-      fetch(API, {
-        method: 'PUT',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(dataRef.current),
-      })
-        .then((r) => setSync(r.ok ? 'online' : 'offline'))
-        .catch(() => setSync('offline'))
-    }, 700)
   }, [data])
+
+  // Corre una mutación optimista y sincroniza con el servidor.
+  // apply: (data) => nuevoData    ·    call: () => Promise<reconciliador|void>
+  function mutate(apply, call) {
+    setData((d) => apply(d))
+    setSync('syncing')
+    call()
+      .then((reconcile) => {
+        if (typeof reconcile === 'function') setData((d) => reconcile(d))
+        setSync('online')
+      })
+      .catch(() => setSync('offline'))
+  }
 
   // --- lookups ---
   const studioById = (id) => data.studios.find((s) => s.id === id)
   const coachById = (id) => data.coaches.find((c) => c.id === id)
-  const rateFor = (coachId, studioId, classType) => {
-    const r = data.rates.find(
-      (x) => x.coachId === coachId && x.studioId === studioId && x.classType === classType,
-    )
-    return r ? r.rateMxn : null
-  }
-  const payFor = (session) =>
-    rateFor(effectiveCoachId(session), session.studioId, session.classType)
+  // Tarifa vigente a una fecha (default hoy). Usa la lógica de vigencia compartida.
+  const rateFor = (coachId, studioId, classType, date = todayStr()) =>
+    resolveRate(data.rates, coachId, studioId, classType, date)
+  // Pago de una sesión: snapshot congelado si ya se dio, si no proyección por fecha.
+  const payFor = (session) => computePay(session, data.rates)
 
-  // --- acciones: clases ---
-  function makeSession(s) {
+  // --- clases ---
+  function buildSession(input) {
     return {
-      id: uid('s'),
-      durationMin: 50,
-      status: defaultStatus(s.date),
-      substitutedBy: null,
-      notes: '',
-      ...s,
+      id: input.id || uid('s'),
+      studioId: input.studioId,
+      coachId: input.coachId,
+      classType: input.classType,
+      date: input.date,
+      time: input.time,
+      durationMin: input.durationMin ?? 50,
+      room: input.room ?? '',
+      status: input.status ?? defaultStatus(input.date),
+      substitutedBy: input.substitutedBy ?? null,
+      paidRateMxn: null,
+      seriesId: input.seriesId ?? null,
+      notes: input.notes ?? '',
     }
   }
 
-  function addSession(s) {
-    const session = makeSession(s)
-    setData((d) => ({ ...d, sessions: [...d.sessions, session] }))
+  function replaceSessions(newRows) {
+    // Reconciliador: reemplaza por id con las filas autoritativas del servidor.
+    const byId = new Map(newRows.map((s) => [s.id, s]))
+    return (d) => ({
+      ...d,
+      sessions: d.sessions.map((s) => byId.get(s.id) || s),
+    })
+  }
+
+  function addSession(input) {
+    const s = buildSession(input)
+    mutate(
+      (d) => ({ ...d, sessions: [...d.sessions, s] }),
+      () => api('POST', '/api/sessions', s).then((r) => replaceSessions(r.sessions)),
+    )
+    return s
   }
 
   function addSessions(list) {
-    const made = list.map(makeSession)
-    setData((d) => ({ ...d, sessions: [...d.sessions, ...made] }))
+    const made = list.map(buildSession)
+    mutate(
+      (d) => ({ ...d, sessions: [...d.sessions, ...made] }),
+      () => api('POST', '/api/sessions', { sessions: made }).then((r) => replaceSessions(r.sessions)),
+    )
+    return made
   }
 
   function updateSession(id, patch) {
-    setData((d) => ({
-      ...d,
-      sessions: d.sessions.map((s) => (s.id === id ? { ...s, ...patch } : s)),
-    }))
+    mutate(
+      (d) => ({ ...d, sessions: d.sessions.map((s) => (s.id === id ? { ...s, ...patch } : s)) }),
+      () => api('PATCH', `/api/sessions/${encodeURIComponent(id)}`, patch).then((r) => replaceSessions([r.session])),
+    )
   }
 
   function deleteSession(id) {
-    setData((d) => ({ ...d, sessions: d.sessions.filter((s) => s.id !== id) }))
+    mutate(
+      (d) => ({ ...d, sessions: d.sessions.filter((s) => s.id !== id) }),
+      () => api('DELETE', `/api/sessions/${encodeURIComponent(id)}`),
+    )
+  }
+
+  function deleteSeries(seriesId, from) {
+    mutate(
+      (d) => ({
+        ...d,
+        sessions: d.sessions.filter((s) => !(s.seriesId === seriesId && s.date >= from)),
+      }),
+      () => api('DELETE', `/api/sessions?seriesId=${encodeURIComponent(seriesId)}&from=${from}`),
+    )
   }
 
   function substituteSession(id, coachId) {
@@ -154,53 +171,75 @@ export function StoreProvider({ children }) {
   }
 
   function clearSubstitution(id) {
-    setData((d) => ({
-      ...d,
-      sessions: d.sessions.map((s) =>
-        s.id === id ? { ...s, status: defaultStatus(s.date), substitutedBy: null } : s,
-      ),
-    }))
+    const s = dataRef.current.sessions.find((x) => x.id === id)
+    updateSession(id, { status: defaultStatus(s ? s.date : todayStr()), substitutedBy: null })
   }
 
   function setStatus(id, status) {
     updateSession(id, { status })
   }
 
-  // --- acciones: equipo y tarifas ---
+  // Cierre de día: resuelve varias clases pasadas de golpe.
+  function resolveSessions(ids, status) {
+    if (ids.length === 0) return
+    const set = new Set(ids)
+    mutate(
+      (d) => ({ ...d, sessions: d.sessions.map((s) => (set.has(s.id) ? { ...s, status } : s)) }),
+      () =>
+        Promise.all(
+          ids.map((id) => api('PATCH', `/api/sessions/${encodeURIComponent(id)}`, { status })),
+        ).then((rs) => replaceSessions(rs.map((r) => r.session))),
+    )
+  }
+
+  // --- equipo y tarifas ---
   function addCoach(name) {
-    const coach = { id: uid('c'), name: name.trim() }
-    setData((d) => ({ ...d, coaches: [...d.coaches, coach] }))
+    const coach = { id: uid('c'), name: name.trim(), whatsapp: '', email: '', isPrimary: 0 }
+    mutate(
+      (d) => ({ ...d, coaches: [...d.coaches, coach] }),
+      () => api('POST', '/api/coaches', coach),
+    )
     return coach
   }
 
   function addStudio(name, location) {
     const studio = { id: uid('st'), name: name.trim(), location: (location || '').trim() }
-    setData((d) => ({ ...d, studios: [...d.studios, studio] }))
+    mutate(
+      (d) => ({ ...d, studios: [...d.studios, studio] }),
+      () => api('POST', '/api/studios', studio),
+    )
     return studio
   }
 
+  // Cambio de tarifa con vigencia: el servidor cierra la anterior e inserta la nueva.
+  // effectiveFrom = hoy (los pagos ya devengados no cambian).
   function upsertRate(coachId, studioId, classType, rateMxn) {
-    setData((d) => {
-      const i = d.rates.findIndex(
-        (x) => x.coachId === coachId && x.studioId === studioId && x.classType === classType,
-      )
-      const rates = [...d.rates]
-      if (i >= 0) rates[i] = { ...rates[i], rateMxn }
-      else rates.push({ coachId, studioId, classType, rateMxn })
-      return { ...d, rates }
-    })
+    const today = todayStr()
+    const current = resolveRate(dataRef.current.rates, coachId, studioId, classType, today)
+    if (current === rateMxn) return // sin cambio real
+    setSync('syncing')
+    api('POST', '/api/rates', { coachId, studioId, classType, rateMxn, effectiveFrom: today })
+      .then((r) => {
+        setData((d) => ({ ...d, rates: r.rates }))
+        setSync('online')
+      })
+      .catch(() => setSync('offline'))
   }
 
   function resetDemo() {
-    setData(initialData())
     setEditing(null)
+    setSync('syncing')
+    api('POST', `/api/reset?today=${todayStr()}`)
+      .then((server) => {
+        if (isValid(server)) setData(server)
+        setSync('online')
+      })
+      .catch(() => setSync('offline'))
   }
 
-  // --- editor de clase ---
+  // --- editor / selector ---
   const openEditor = (target) => setEditing(target)
   const closeEditor = () => setEditing(null)
-
-  // --- selector de sustitución ---
   const openSubPicker = (session) => setSubPicking(session)
   const closeSubPicker = () => setSubPicking(null)
 
@@ -215,9 +254,11 @@ export function StoreProvider({ children }) {
     addSessions,
     updateSession,
     deleteSession,
+    deleteSeries,
     substituteSession,
     clearSubstitution,
     setStatus,
+    resolveSessions,
     addCoach,
     addStudio,
     upsertRate,
