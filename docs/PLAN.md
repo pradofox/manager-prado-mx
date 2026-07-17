@@ -136,7 +136,45 @@ respuesta autoritativa del POST/PATCH, no re-consultando `/api/bootstrap`. Un se
 dispositivo puede ver datos ~1s viejos hasta recargar. Aceptable para prototipo; si
 molesta, usar la Sessions API de D1 con bookmarks de read-your-writes.
 
+### Piloto pagado lean — la ruta a dinero (elegida 2026-07-16)
+
+> **La rentabilidad no se construye, se cobra.** No se escribe billing ni
+> multi-tenant hasta que alguien pague. El orden importa.
+
+**Paso 1 — Hugo, una quincena real (semana 1-2).** Ajustes → "Empezar de cero con
+mis datos reales" → carga sus estudios, tarifas y horario. Usa la app la quincena
+completa. Ahí se responden por fin las 3 preguntas del handoff §7, con la app
+enfrente en vez de en abstracto.
+- Señal de éxito: la abre sin que se lo recuerden, y su corte coincide con lo que
+  le pagaron. Si no la abre sola, el producto no existe. Parar y aprender por qué.
+
+**Paso 2 — Cobrar a 2-3 estudios (semana 3-6).** Solo si el paso 1 pasó. Instancia
+propia por cliente, montada a mano (Worker + D1 nuevos, ~15 min por cliente). Sin
+signup, sin Stripe, sin landing. Cobro por transferencia/factura manual.
+- Qué se está probando: **willingness-to-pay**, nada más. Un "sí, te pago $X/mes"
+  vale más que cualquier feature.
+- Precio de arranque sugerido: $800-1,500 MXN/mes por estudio (bajo el ruido de
+  aprobación de una dueña; el ancla es Fitco ~$2-4k). Ajustar con lo que digan.
+- El pitch NO es software: es "tu nómina de coaches sin errores ni WhatsApp".
+
+**Paso 3 — Decidir con datos (semana 7+).** Con 2-3 pagando de verdad:
+- ¿Renuevan al segundo mes? (retención > adquisición)
+- ¿Cuánto tiempo real cuesta operar cada instancia a mano?
+- Ahí, y solo ahí, tiene sentido preguntar si vale automatizar (multi-tenant,
+  signup, billing) — que es el umbral del handoff §2, ahora con evidencia.
+
+**Regla anti-inercia (sigue vigente):** ninguna línea de multi-tenant, signup
+público o billing automatizado antes del paso 3. Si aparece esa tentación, es
+señal de que estamos construyendo en vez de vender.
+
 ### Fase 1 — Acceso + subs por WhatsApp (~2-3 sesiones)
+
+- [x] **Auth ligera en Cloudflare** ✅ 2026-07-16. Código compartido → cookie HMAC
+      30 días (`worker/auth.js`, `Lock.jsx`). Secretos `ACCESS_CODE`/`AUTH_SECRET`
+      en el Worker. Todo `/api/*` cerrado salvo `/api/login`. Falta (si el piloto
+      escala): rate-limit al login y links mágicos por coach con rol `coach`.
+- [x] **Arranque en blanco** ✅ 2026-07-16. `POST /api/reset?mode=empty` +
+      "Empezar de cero con mis datos reales" en Ajustes. Desbloquea el piloto.
 
 - [ ] **Auth ligera en Cloudflare** (patrón del dash de Roberto): passcode → cookie
       firmada 30 días por dispositivo. Roles mínimos: `admin` (Hugo/Roberto) y
