@@ -19,6 +19,7 @@
 import { snapshotRate, effectiveCoachId } from '../src/data/money.js'
 import { addDays } from '../src/data/date.js'
 import { buildSeedData } from './seed.js'
+import { isAuthed, checkCode, makeToken, sessionCookie } from './auth.js'
 
 const J = { 'content-type': 'application/json' }
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: J })
@@ -285,9 +286,15 @@ async function handleApi(request, env, url) {
     return json(await fetchAll(db))
   }
 
+  // Reset: 'demo' resiembra el demo; 'empty' deja la base en blanco para
+  // cargar datos reales (el arranque del piloto).
   if (path === '/api/reset' && method === 'POST') {
     await wipe(db)
-    await seed(db, url.searchParams.get('today') || '2026-01-01')
+    if (url.searchParams.get('mode') === 'empty') {
+      await db.prepare("INSERT OR REPLACE INTO meta (key,value) VALUES ('seeded','1')").run()
+    } else {
+      await seed(db, url.searchParams.get('today') || '2026-01-01')
+    }
     return json(await fetchAll(db))
   }
 
@@ -364,6 +371,17 @@ export default {
     const url = new URL(request.url)
     if (url.pathname.startsWith('/api/')) {
       try {
+        // Única ruta abierta: canjear el código de acceso por una sesión.
+        if (url.pathname === '/api/login' && request.method === 'POST') {
+          const body = await request.json().catch(() => ({}))
+          if (!checkCode(env, body.code)) return err('código incorrecto', 401)
+          const token = await makeToken(env.AUTH_SECRET)
+          return new Response(JSON.stringify({ ok: true }), {
+            headers: { ...J, 'set-cookie': sessionCookie(token) },
+          })
+        }
+        // Todo lo demás exige sesión: aquí vive dinero real.
+        if (!(await isAuthed(request, env))) return err('no autorizado', 401)
         return await handleApi(request, env, url)
       } catch (e) {
         return err('error interno: ' + (e?.message || String(e)), 500)

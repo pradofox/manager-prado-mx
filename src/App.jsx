@@ -4,6 +4,7 @@ import { useStore } from './data/store.jsx'
 import ClassForm from './components/ClassForm.jsx'
 import SubstitutePicker from './components/SubstitutePicker.jsx'
 import DayClose from './components/DayClose.jsx'
+import Lock from './components/Lock.jsx'
 import Horarios from './pages/Horarios.jsx'
 import Pagos from './pages/Pagos.jsx'
 import Sustituciones from './pages/Sustituciones.jsx'
@@ -65,8 +66,8 @@ const SYNC_LABEL = {
 }
 
 function Settings({ onClose }) {
-  const { resetDemo, sync } = useStore()
-  const [confirm, setConfirm] = useState(false)
+  const { resetData, sync } = useStore()
+  const [confirm, setConfirm] = useState(null) // null | 'demo' | 'empty'
   return (
     <div
       className="animate-fade fixed inset-0 z-30 flex items-end justify-center bg-fg/40 md:items-center md:p-6"
@@ -89,23 +90,45 @@ function Settings({ onClose }) {
           <span className="font-mono text-micro uppercase tracking-wide text-fg">{SYNC_LABEL[sync]}</span>
         </div>
         <p className="font-mono text-micro leading-relaxed text-muted">
-          Prototipo de Studio Manager. Los datos (clases, equipo, tarifas) se guardan en la nube y se
-          sincronizan entre dispositivos. Todavía no hay cuenta ni contraseña.
+          Los datos (clases, equipo, tarifas) se guardan en la nube y se sincronizan entre
+          dispositivos. El acceso está protegido con código.
         </p>
+
         <button
           onClick={() => {
-            if (!confirm) {
-              setConfirm(true)
+            if (confirm !== 'empty') {
+              setConfirm('empty')
               return
             }
-            resetDemo()
+            resetData('empty')
             onClose()
           }}
           className={`mt-5 w-full rounded-xl border py-3 text-meta ${
-            confirm ? 'border-fg bg-fg font-bold text-card' : 'border-line text-fg'
+            confirm === 'empty' ? 'border-fg bg-fg font-bold text-card' : 'border-fg text-fg'
           }`}
         >
-          {confirm ? 'Confirmar — esto borra tus cambios' : 'Reiniciar datos de demo'}
+          {confirm === 'empty'
+            ? 'Confirmar — borra todo y empieza en blanco'
+            : 'Empezar de cero con mis datos reales'}
+        </button>
+        <p className="mt-1.5 font-mono text-label leading-relaxed text-muted">
+          Borra el demo y deja la app vacía para cargar tus estudios, tarifas y horario reales.
+        </p>
+
+        <button
+          onClick={() => {
+            if (confirm !== 'demo') {
+              setConfirm('demo')
+              return
+            }
+            resetData('demo')
+            onClose()
+          }}
+          className={`mt-4 w-full rounded-xl border py-2.5 text-meta ${
+            confirm === 'demo' ? 'border-fg bg-fg font-bold text-card' : 'border-line text-muted'
+          }`}
+        >
+          {confirm === 'demo' ? 'Confirmar — esto borra tus cambios' : 'Reiniciar datos de demo'}
         </button>
         <div className="mt-4 text-center font-mono text-label uppercase tracking-widest text-muted">
           Studio Manager · PRADO · v0.5
@@ -118,10 +141,13 @@ function Settings({ onClose }) {
 export default function App() {
   const [tab, setTab] = useState('horarios')
   const [settings, setSettings] = useState(false)
-  const { editing, openEditor } = useStore()
+  const { editing, openEditor, authed } = useStore()
   const current = TABS.find((t) => t.id === tab)
   const Active = current.Page
   const today = parseDate(todayStr()).full
+
+  if (authed === 'no') return <Lock />
+  if (authed === 'unknown') return <div className="min-h-dvh bg-bg" />
 
   return (
     <div className="relative flex h-dvh overflow-hidden bg-bg">

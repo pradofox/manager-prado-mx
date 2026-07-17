@@ -29,13 +29,20 @@ function uid(prefix) {
   return prefix + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
 }
 
+class HttpError extends Error {
+  constructor(status) {
+    super('http ' + status)
+    this.status = status
+  }
+}
+
 async function api(method, path, body) {
   const res = await fetch(path, {
     method,
     headers: body ? { 'content-type': 'application/json' } : undefined,
     body: body ? JSON.stringify(body) : undefined,
   })
-  if (!res.ok) throw new Error('http ' + res.status)
+  if (!res.ok) throw new HttpError(res.status)
   return res.json()
 }
 
@@ -44,26 +51,41 @@ export function StoreProvider({ children }) {
   const [editing, setEditing] = useState(null) // null | 'new' | sessionObject
   const [subPicking, setSubPicking] = useState(null)
   const [sync, setSync] = useState('syncing') // 'syncing' | 'online' | 'offline'
+  const [authed, setAuthed] = useState('unknown') // 'unknown' | 'yes' | 'no'
 
   const dataRef = useRef(data)
   dataRef.current = data
 
-  // Carga inicial desde el servidor (D1). Siembra sola si está vacío.
-  useEffect(() => {
-    let cancelled = false
-    api('GET', `/api/bootstrap?today=${todayStr()}`)
+  function loadAll() {
+    return api('GET', `/api/bootstrap?today=${todayStr()}`)
       .then((server) => {
-        if (cancelled) return
         if (isValid(server)) setData(server)
+        setAuthed('yes')
         setSync('online')
       })
-      .catch(() => {
-        if (!cancelled) setSync('offline')
+      .catch((e) => {
+        if (e.status === 401) {
+          setAuthed('no')
+          setData(EMPTY) // no dejar datos en caché a la vista sin sesión
+        } else {
+          setAuthed('yes')
+          setSync('offline')
+        }
+        throw e
       })
-    return () => {
-      cancelled = true
-    }
+  }
+
+  // Carga inicial desde el servidor (D1). Siembra sola si está vacío.
+  useEffect(() => {
+    loadAll().catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Canjea el código de acceso por una sesión de 30 días.
+  async function login(code) {
+    await api('POST', '/api/login', { code })
+    await loadAll()
+  }
 
   // Persistir la caché de lectura en cada cambio.
   useEffect(() => {
@@ -226,10 +248,12 @@ export function StoreProvider({ children }) {
       .catch(() => setSync('offline'))
   }
 
-  function resetDemo() {
+  // mode 'demo' resiembra el demo; 'empty' deja todo en blanco para datos reales.
+  function resetData(mode = 'demo') {
     setEditing(null)
     setSync('syncing')
-    api('POST', `/api/reset?today=${todayStr()}`)
+    const q = mode === 'empty' ? '?mode=empty' : `?today=${todayStr()}`
+    api('POST', `/api/reset${q}`)
       .then((server) => {
         if (isValid(server)) setData(server)
         setSync('online')
@@ -246,6 +270,8 @@ export function StoreProvider({ children }) {
   const value = {
     ...data,
     sync,
+    authed,
+    login,
     studioById,
     coachById,
     rateFor,
@@ -262,7 +288,7 @@ export function StoreProvider({ children }) {
     addCoach,
     addStudio,
     upsertRate,
-    resetDemo,
+    resetData,
     editing,
     openEditor,
     closeEditor,
